@@ -22,6 +22,16 @@ entries:
     - .deploy/.deploy/testcd-0.1.7.tgz
     version: 0.1.7
   - apiVersion: v2
+    appVersion: "122"
+    created: "2023-06-20T14:07:13.861875855Z"
+    description: A Helm chart for Kubernetes
+    digest: 3813c4a2e7ce920d3d65129edd2690e19318ef4eaac50cc6d7298810ac13a099
+    name: testcd
+    type: application
+    urls:
+    - .deploy/testcd-0.0.122.tgz
+    version: 0.0.122
+  - apiVersion: v2
     appVersion: "119"
     created: "2023-06-20T10:10:57.931358709Z"
     description: A Helm chart for Kubernetes
@@ -51,4 +61,4 @@ entries:
     urls:
     - .deploy/testcd-0.0.113.tgz
     version: 0.0.113
-generated: "2023-06-20T10:20:40.838193798Z"
+generated: "2023-06-20T14:07:13.859247163Z"
