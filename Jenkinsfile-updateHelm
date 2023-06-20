@@ -22,30 +22,30 @@
                     script: 'cat Chart.yaml | awk \'/appVersion:/ {print $2}\'', 
                     returnStdout: true
                     ).trim()
-                
-
-                if ((params.defaultHelmVersion == null) || (params.defaultAppVersion == null)) {
-                    versions = input id: 'UpdateHelm', 
-                                    message: 'Version and App Version', 
-                                    parameters: [string(defaultValue: "${currentHelmVersion}", 
-                                                        description: "Current helm version ${currentHelmVersion}", 
-                                                        name: 'Version'), 
-                                                string(defaultValue: "${currentAppVersion}", 
-                                                        description: "Current Application version ${currentAppVersion}", 
-                                                        name: 'AppVersion')]
-                } else {
-                    versions = input id: 'UpdateHelm', 
-                                    message: 'Version and App Version', 
-                                    parameters: [string(defaultValue: "${params.defaultHelmVersion}", 
-                                                        description: "Current helm version ${currentHelmVersion}", 
-                                                        name: 'Version'), 
-                                                string(defaultValue: "${params.defaultAppVersion}", 
-                                                        description: "Current Application version ${currentAppVersion}", 
-                                                        name: 'AppVersion')]
-                }
-
-                helmVersion = versions.Version?:''
-                appVersion = versions.AppVersion?:''
+                try {
+                    timeout(time: 5, unit: 'SECONDS') {
+                            versions = input id: 'UpdateHelm', 
+                                            message: 'Version and App Version', 
+                                            parameters: [string(defaultValue: "${currentHelmVersion}", 
+                                                                description: "Current helm version ${currentHelmVersion}", 
+                                                                name: 'Version'), 
+                                                        string(defaultValue: "${currentAppVersion}", 
+                                                                description: "Current Application version ${currentAppVersion}", 
+                                                                name: 'AppVersion')]
+                            helmVersion = versions.Version?:''
+                            appVersion = versions.AppVersion?:''
+                    }
+                } catch(err) {
+                    def user = err.getCauses()[0].getUser()
+                        if('SYSTEM' == user.toString()) {                                
+                            echo ("Input timeout expired, Current version will be used")
+                            helmVersion = params.defaultHelmVersion
+                            appVersion = params.defaultAppVersion
+                        } else {
+                            echo "Input aborted by: [${user}]"
+                            error("Pipeline aborted by: [${user}]")
+                        }
+                    }            
                 isSuccess0 = sh (
                         script: """sed -i 's/version: ${currentHelmVersion}/version: ${helmVersion}/' Chart.yaml""",
                         returnStatus: true
@@ -79,7 +79,8 @@
                         withCredentials([sshUserPrivateKey(credentialsId: "${userHelm}", keyFileVariable: 'KEY', usernameVariable: 'USER')]) {
                             sh("mkdir -p ~/.ssh && chmod 0700 ~/.ssh")
                             sh("ssh-keyscan -t ecdsa-sha2-nistp256,ssh-ed25519 ${helmHost} >> ~/.ssh/known_hosts")
-                            sh(""" scp -i ${KEY} ${pathIndex} ${pathRepo}/* ${USER}@${helmHost}:${helmHostPath} """)
+                            sh(""" scp -i ${KEY} ${pathIndex} ${USER}@${helmHost}:${helmHostPath} """)
+                            sh(""" scp -i ${KEY} ${pathRepo}/* ${USER}@${helmHost}:${helmHostPath}/${pathRepo} """)
                             
                         }
                     }
